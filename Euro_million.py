@@ -72,9 +72,44 @@ def get_best_numbers(list_numbers, file, n_triad=3):
 
 	with open(file, 'w') as loto_stats:
 		loto_stats.write(occurence_formatted)
+
+#reverses a dictionnary so that keys can be looked up from values even when multiple keys have the same values
+def reverse_dico(dico):
+	reversed_dico = {}
+	for key in dico:
+		try:
+			reversed_dico[dico[key]].append(key)
+		except KeyError:
+			reversed_dico[dico[key]] = [key]
+	return reversed_dico
+
+#Returns a list of all combinations that are the most 'popular' along with occurence frequency
+def max_occurence():
+	reverse_occ = reverse_dico(occurence)
+	max_key = max(occurence.values())
+	return max_key, reverse_occ[max_key]
+
+#Returns list of list of numbers after splitting a list of joined numbers
+def split_numbers(joined_numbers):
+	list_numbers = []
+	for number in joined_numbers:
+		list_numbers.append(number.split('-'))
+	return list_numbers
+	
 	
 list_numbers = read_stats_file("nouveau_loto.csv",4,5)
-get_best_numbers(list_numbers, "loto_stats.csv", 3)
+get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
+
+"""max_occ, best_num = max_occurence()
+#must reset occurence for second run
+occurence = {}
+list_numbers = split_numbers(best_num)
+get_best_numbers(list_numbers, "loto_stats_2.csv", 2)
+"""
+max_occ, best_num = max_occurence()
+occurence = {}
+list_numbers = split_numbers(best_num)
+get_best_numbers(list_numbers, "loto_stats_1.csv", 1)
 
 		
 print "All in Defs. Done."
