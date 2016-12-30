@@ -73,7 +73,7 @@ def get_best_numbers(list_numbers, file, n_triad=3):
 	with open(file, 'w') as loto_stats:
 		loto_stats.write(occurence_formatted)
 
-#reverses a dictionnary so that keys can be looked up from values even when multiple keys have the same values
+#reverses a dictionary so that keys can be looked up from values even when multiple keys have the same values
 def reverse_dico(dico):
 	reversed_dico = {}
 	for key in dico:
@@ -83,33 +83,92 @@ def reverse_dico(dico):
 			reversed_dico[dico[key]] = [key]
 	return reversed_dico
 
-#Returns a list of all combinations that are the most 'popular' along with occurence frequency
-def max_occurence():
+#Returns the max occurence frequency and the list of all combinations that are the most 'popular'. Also returns the reverse dico.
+#n to offset the best_num_list from max
+def max_occurence(n=0):
 	reverse_occ = reverse_dico(occurence)
 	max_key = max(occurence.values())
-	return max_key, reverse_occ[max_key]
+	best_num_list = []
+	#for i in range(n):
+	best_num_list += reverse_occ[max_key-n] #i or n selon que for ou pas
+	return max_key, best_num_list, reverse_occ
 
-#Returns list of list of numbers after splitting a list of joined numbers
-def split_numbers(joined_numbers):
+#Returns list of list of numbers after splitting a list of joined numbers. If False is sent, then numbers as a list
+def split_numbers(joined_numbers, list_of_list=True):
 	list_numbers = []
-	for number in joined_numbers:
-		list_numbers.append(number.split('-'))
+	if list_of_list == True:
+		for number in joined_numbers:
+			list_numbers.append(number.split('-'))
+	else:
+		for number in joined_numbers:
+			list_numbers += number.split('-')
 	return list_numbers
 	
-	
+#returns the numbers as a dictionary that occur the most often within the occurence dictionary at a specified occurence level from the max. Return is weighted by occurence.
+#n to offset the best numbers from max occurence (1 looks at 2nd best and so on)
+def deeper_analysis(n=0):
+	best_num_dic = {}
+	max_occ, best_num, reverse_occ = max_occurence()
+	best_list_numbers = list(set(split_numbers(best_num,False)))
+	max_occ, best_num, reverse_occ = max_occurence(n)
+	second_best_list_numbers = split_numbers(best_num)
+	for num in best_list_numbers:
+		for num_list in second_best_list_numbers:
+			if num in num_list:
+				try:
+					best_num_dic[num] += 1 * (max_occ -  n)
+				except KeyError:
+					best_num_dic[num] = 1 * (max_occ - n)
+	return best_num_dic
+
+def add_dict(dic1, dic2):
+	total_dic = {}
+	for key in dic1:
+		try:
+			total_dic[key] = dic1[key] + dic2[key]
+		except KeyError:
+			total_dic[key] = dic1[key]
+	for key in dic2:
+		try:
+			foo = dic1[key]
+		except KeyError:
+			total_dic[key] = dic2[key]
+	return total_dic
+
 list_numbers = read_stats_file("nouveau_loto.csv",4,5)
 get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
 
-"""max_occ, best_num = max_occurence()
+"""
+max_occ, best_num, reverse_occ = max_occurence(2)
 #must reset occurence for second run
 occurence = {}
 list_numbers = split_numbers(best_num)
 get_best_numbers(list_numbers, "loto_stats_2.csv", 2)
-"""
-max_occ, best_num = max_occurence()
+
+max_occ, best_num, reverse_occ = max_occurence(2)
 occurence = {}
 list_numbers = split_numbers(best_num)
 get_best_numbers(list_numbers, "loto_stats_1.csv", 1)
+"""
+
+
+best_num_dic = deeper_analysis(0)
+best_num_dic_next_level = deeper_analysis(1)
+total_dic = add_dict(best_num_dic, best_num_dic_next_level)
+occurence_formatted = "Number;Frequency\n"
+for key in best_num_dic:
+	occurence_formatted += str(key)+";"+str(best_num_dic[key])+"\n"
+occurence_formatted += "\n\nNext round of max occurence.\nNumber;Frequency\n"
+for key in best_num_dic_next_level:
+	occurence_formatted += str(key)+";"+str(best_num_dic_next_level[key])+"\n"
+
+occurence_formatted += "\n\nTotal of max occurence.\nNumber;Frequency\n"
+for key in total_dic:
+	occurence_formatted += str(key)+";"+str(total_dic[key])+"\n"
+	
+file = "best_numbers.csv"
+with open(file, 'w') as loto_stats:
+	loto_stats.write(occurence_formatted)
 
 		
-print "All in Defs. Done."
+print "Done."
