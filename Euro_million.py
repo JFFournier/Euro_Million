@@ -1,11 +1,85 @@
 
 import random
+import copy
 
 #occurence is the dictionary of number triad (key) and their occurences. It is used in functions.
 occurence = {}	
 
-def pause():
-    programPause = raw_input("Press the <ENTER> key to continue...")
+class TriadsN(object):
+	def __init__(self, end_loop, list_numbers):
+		#self.recursive_loop = recursive_loop
+		self.end_loop = end_loop
+		self.list_numbers = list_numbers
+		#self.n = 0
+		self.key = []
+		self.key_no = 0
+		#self.level = -1
+		
+	def key_gen(self, n, recursive_loop, level):
+		level += 1
+		for i in range(n, recursive_loop):
+			try:
+				self.key[self.key_no].append(self.list_numbers[i])
+			except IndexError:
+				self.key.append([self.list_numbers[i]])
+			if level == self.end_loop:
+				transit = copy.copy(self.key[self.key_no])
+				self.key.append(transit)
+				self.key_no += 1
+				del self.key[self.key_no][level]
+			if level < self.end_loop:
+				self.key_gen(i + 1, recursive_loop + 1, level)	
+			if i == recursive_loop - 1:
+				try:
+					del self.key[self.key_no][-1]
+				except IndexError:
+					del self.key[-1]
+					return self.key
+
+					
+#reads csv file to get numbers; start at cell 'init' and ends reading after 'n' numbers. Returns a list of numbers as strings.
+def read_stats_file(file, init = 4, n = 5):
+	with open(file, 'r') as f:
+		f.readline()
+		list_numbers = []
+		for line in f:
+			number_as_str = []
+			number = []
+			line = line.split(';')
+			number_as_str = line[init:init+n]
+			#converts to numbers so they can be sorted. Must reconvert to str to concatenate later on.
+			for num in number_as_str:
+				number.append(int(num))
+			number.sort()
+			number_as_str = []
+			for num in number:
+				number_as_str.append(str(num))
+			list_numbers.append(number_as_str)
+	return list_numbers
+
+
+triad_object = TriadsN(2,['10','20','30','40','50'])		
+print triad_object.key_gen(0,3,-1)
+	
+#iterates through the list of number (as str); creates the triad and populates the occurence dictionary (which is a main variable). 
+#Variables are a list of list of numbers (as str), output filename and length of chain if not 3.
+def get_best_numbers(list_numbers, file, n_triad=3):
+	for i in range(len(list_numbers)):
+		
+		triad(list_numbers[i], n_triad)
+	
+	occurence_formatted = "Combinaison"
+	for i in range(n_triad):
+		occurence_formatted += ";boule_"+str(i+1)
+	occurence_formatted += ";frequence\n"
+
+	for key in occurence:
+		key_num = ";".join(key.split('-'))
+		occurence_formatted += "'"+key+";"+key_num+";"+str(occurence[key])+"\n"
+
+	with open(file, 'w') as loto_stats:
+		loto_stats.write(occurence_formatted)					
+					
 	
 #n is the number of numbers; max is range for random; returns number as a list of str; 
 def loto_number(n, max):
@@ -28,51 +102,38 @@ def generate_fake_numbers():
 #provides the dictionary (as part of main program) with the key/occurences for each number triad. Takes a list of numbers as str. n if not a triad is tested
 def triad(list_numbers,n=3):
 	#-(n-1) to stop at the last number (i+n lower)
-	for i in range(len(list_numbers)-n+1):
+	len_range = len(list_numbers) - n + 1
+	key_gen(0, len_range - n_triad, len_range,-1, list_numbers)
+	for i in range(n):
+		key_gen(i, len_range)
+	"""for i in range(len_range):
+		for j in range(i+1,len_range + 1):
+			for k in range(j + 1, len_range + 2)
+	"""	
 		key = "-".join(list_numbers[i:i+n])
 		try:
 			occurence[key] += 1
 		except KeyError:
 			occurence[key] = 1
-	
-#reads csv file to get numbers; start at cell 'init' and ends reading after 'n' numbers. Returns a list of numbers as strings.
-def read_stats_file(file, init = 4, n = 5):
-	with open(file, 'r') as f:
-		f.readline()
-		list_numbers = []
-		for line in f:
-			number_as_str = []
-			number = []
-			line = line.split(';')
-			number_as_str = line[init:init+n]
-			#converts to numbers so they can be sorted. Must reconvert to str to concatenate later on.
-			for num in number_as_str:
-				number.append(int(num))
-			number.sort()
-			number_as_str = []
-			for num in number:
-				number_as_str.append(str(num))
-			list_numbers.append(number_as_str)
-	return list_numbers
-	
-#iterates through the list of number (as str); creates the triad and populates the occurence dictionary (which is a main variable). 
-#Variables are a list of list of numbers (as str), output filename and length of chain if not 3.
-def get_best_numbers(list_numbers, file, n_triad=3):
-	for i in range(len(list_numbers)):
-		triad(list_numbers[i], n_triad)
-	
-	occurence_formatted = "Combinaison"
-	for i in range(n_triad):
-		occurence_formatted += ";boule_"+str(i+1)
-	occurence_formatted += ";frequence\n"
 
-	for key in occurence:
-		key_num = ";".join(key.split('-'))
-		occurence_formatted += "'"+key+";"+key_num+";"+str(occurence[key])+"\n"
+def key_gen(n, recursive_loop, end_loop, level, list_numbers,key_no=0, key=[]):
+	
+	while n < end_loop:
+		level += 1
+		for i in range(n, recursive_loop):
+			key.append(list_numbers[i])
+			key_gen(i + 1, recursive_loop + 1, end_loop, level, list_numbers, key_no, key)
+			return i
+	del key[key_no][level]
+	key_no += 1
+	#return list_numbers[level]
+	
 
-	with open(file, 'w') as loto_stats:
-		loto_stats.write(occurence_formatted)
 
+def pause():
+    programPause = raw_input("Press the <ENTER> key to continue...")
+
+	
 #reverses a dictionary so that keys can be looked up from values even when multiple keys have the same values
 def reverse_dico(dico):
 	reversed_dico = {}
@@ -138,20 +199,19 @@ def add_dict(dic1, dic2):
 list_numbers = read_stats_file("nouveau_loto.csv",4,5)
 get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
 
-"""
-max_occ, best_num, reverse_occ = max_occurence(2)
+max_occ, best_num, reverse_occ = max_occurence()
 #must reset occurence for second run
 occurence = {}
 list_numbers = split_numbers(best_num)
 get_best_numbers(list_numbers, "loto_stats_2.csv", 2)
 
-max_occ, best_num, reverse_occ = max_occurence(2)
-occurence = {}
-list_numbers = split_numbers(best_num)
-get_best_numbers(list_numbers, "loto_stats_1.csv", 1)
+"""	max_occ, best_num, reverse_occ = max_occurence(2)
+	occurence = {}
+	list_numbers = split_numbers(best_num)
+	get_best_numbers(list_numbers, "loto_stats_1.csv", 1)
 """
 
-
+"""
 best_num_dic = deeper_analysis(0)
 best_num_dic_next_level = deeper_analysis(1)
 total_dic = add_dict(best_num_dic, best_num_dic_next_level)
@@ -169,6 +229,6 @@ for key in total_dic:
 file = "best_numbers.csv"
 with open(file, 'w') as loto_stats:
 	loto_stats.write(occurence_formatted)
-
+"""
 		
 print "Done."
