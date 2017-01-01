@@ -5,36 +5,71 @@ import copy
 #occurence is the dictionary of number triad (key) and their occurences. It is used in functions.
 occurence = {}	
 
+#Order dictionnaries by values. Takes a dictionary as argument. Two lists are given.
+class OrderedDict(object):
+	def __init__(self, dict):
+		self.dict = dict
+	
+	def order(self):
+		keys = list(self.dict.keys())
+		self.key_d = copy.copy(keys)
+		vals = list(self.dict.values())
+		self.val_d = copy.copy(vals)
+		self.val_d.sort()
+		for i, key in enumerate(keys):
+			self.key_d[self.val_d.index(vals[i])] = key
+	
+#Object that computes all permutation possible of N numbers within M numbers. Takes list of numbers (as str) and N_Triad as arguments.
 class TriadsN(object):
-	def __init__(self, end_loop, list_numbers):
-		#self.recursive_loop = recursive_loop
-		self.end_loop = end_loop
+	def __init__(self, list_numbers, N_Triad = 3):
+		# -1 because counter starts at 0, but easier to count triads from 1.
+		self.N_Triad = N_Triad - 1
 		self.list_numbers = list_numbers
-		#self.n = 0
 		self.key = []
 		self.key_no = 0
-		#self.level = -1
 		
-	def key_gen(self, n, recursive_loop, level):
+	#generates the list of keys as a list of list of numbers (as str). Works as recursive function.
+	#Arguments only necessary within recursive function; initiation does not require them.
+	#Takes the starting and ending i values for the for loops. Equal to 0 and length of N_Triad.  
+	#Level is to keep tract of the depth of recursive function.
+	def key_gen(self, start_i = 0, end_i=None, level=-1):
+		if end_i is None:
+			end_i = len(self.list_numbers) - self.N_Triad
 		level += 1
-		for i in range(n, recursive_loop):
+		for i in range(start_i, end_i):
 			try:
 				self.key[self.key_no].append(self.list_numbers[i])
 			except IndexError:
 				self.key.append([self.list_numbers[i]])
-			if level == self.end_loop:
+			#checks if key is complete and should move on to next one.
+			if level == self.N_Triad:
+				#shallow copy to prevent modification of previous keys. Needs to remember previous levels of keys.
 				transit = copy.copy(self.key[self.key_no])
 				self.key.append(transit)
 				self.key_no += 1
+				#deletes last level of key to change it for new one
 				del self.key[self.key_no][level]
-			if level < self.end_loop:
-				self.key_gen(i + 1, recursive_loop + 1, level)	
-			if i == recursive_loop - 1:
+			#if not at last level of key generation, then reenters function to loop through the numbers, but always with +1 on starting and ending i (no duplicate values).
+			if level < self.N_Triad:
+				self.key_gen(i + 1, end_i + 1, level)	
+			#if at the end of the for loop, must delete another level of key as recursion will occur at the next loop.
+			if i == end_i - 1:
 				try:
 					del self.key[self.key_no][-1]
+				#at the end of all loops, program creates an extra (shallow) key, then deletes all member before generating error. This is normal and means recursion should end.
 				except IndexError:
 					del self.key[-1]
-					return self.key
+					return
+
+	#provides the dictionary (as part of main program) with the key/occurences for each number triad. 
+	def triad(self):
+		self.key_gen()
+		for k in self.key: 
+			key_str = "-".join(k) 
+			try:
+				occurence[key_str] += 1
+			except KeyError:
+				occurence[key_str] = 1
 
 					
 #reads csv file to get numbers; start at cell 'init' and ends reading after 'n' numbers. Returns a list of numbers as strings.
@@ -57,16 +92,13 @@ def read_stats_file(file, init = 4, n = 5):
 			list_numbers.append(number_as_str)
 	return list_numbers
 
-
-triad_object = TriadsN(2,['10','20','30','40','50'])		
-print triad_object.key_gen(0,3,-1)
-	
 #iterates through the list of number (as str); creates the triad and populates the occurence dictionary (which is a main variable). 
 #Variables are a list of list of numbers (as str), output filename and length of chain if not 3.
 def get_best_numbers(list_numbers, file, n_triad=3):
+	
 	for i in range(len(list_numbers)):
-		
-		triad(list_numbers[i], n_triad)
+		triad_object = TriadsN(list_numbers[i], n_triad)
+		triad_object.triad()
 	
 	occurence_formatted = "Combinaison"
 	for i in range(n_triad):
@@ -102,38 +134,16 @@ def generate_fake_numbers():
 #provides the dictionary (as part of main program) with the key/occurences for each number triad. Takes a list of numbers as str. n if not a triad is tested
 def triad(list_numbers,n=3):
 	#-(n-1) to stop at the last number (i+n lower)
-	len_range = len(list_numbers) - n + 1
-	key_gen(0, len_range - n_triad, len_range,-1, list_numbers)
-	for i in range(n):
-		key_gen(i, len_range)
-	"""for i in range(len_range):
-		for j in range(i+1,len_range + 1):
-			for k in range(j + 1, len_range + 2)
-	"""	
+	for i in range(len(list_numbers)-n+1):
 		key = "-".join(list_numbers[i:i+n])
 		try:
 			occurence[key] += 1
 		except KeyError:
 			occurence[key] = 1
 
-def key_gen(n, recursive_loop, end_loop, level, list_numbers,key_no=0, key=[]):
-	
-	while n < end_loop:
-		level += 1
-		for i in range(n, recursive_loop):
-			key.append(list_numbers[i])
-			key_gen(i + 1, recursive_loop + 1, end_loop, level, list_numbers, key_no, key)
-			return i
-	del key[key_no][level]
-	key_no += 1
-	#return list_numbers[level]
-	
-
-
 def pause():
     programPause = raw_input("Press the <ENTER> key to continue...")
 
-	
 #reverses a dictionary so that keys can be looked up from values even when multiple keys have the same values
 def reverse_dico(dico):
 	reversed_dico = {}
@@ -196,23 +206,11 @@ def add_dict(dic1, dic2):
 			total_dic[key] = dic2[key]
 	return total_dic
 
+	
 list_numbers = read_stats_file("nouveau_loto.csv",4,5)
 get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
 
-max_occ, best_num, reverse_occ = max_occurence()
-#must reset occurence for second run
-occurence = {}
-list_numbers = split_numbers(best_num)
-get_best_numbers(list_numbers, "loto_stats_2.csv", 2)
-
-"""	max_occ, best_num, reverse_occ = max_occurence(2)
-	occurence = {}
-	list_numbers = split_numbers(best_num)
-	get_best_numbers(list_numbers, "loto_stats_1.csv", 1)
-"""
-
-"""
-best_num_dic = deeper_analysis(0)
+best_num_dic = deeper_analysis()
 best_num_dic_next_level = deeper_analysis(1)
 total_dic = add_dict(best_num_dic, best_num_dic_next_level)
 occurence_formatted = "Number;Frequency\n"
@@ -229,6 +227,17 @@ for key in total_dic:
 file = "best_numbers.csv"
 with open(file, 'w') as loto_stats:
 	loto_stats.write(occurence_formatted)
-"""
+
+max_occ, best_num, reverse_occ = max_occurence()
+#must reset occurence for second run
+occurence = {}
+list_numbers = split_numbers(best_num)
+get_best_numbers(list_numbers, "loto_stats_2.csv", 2)
+
+max_occ, best_num, reverse_occ = max_occurence(0)
+occurence = {}
+list_numbers = split_numbers(best_num)
+get_best_numbers(list_numbers, "loto_stats_1.csv", 1)
+
 		
 print "Done."
