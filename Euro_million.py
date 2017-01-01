@@ -9,15 +9,23 @@ occurence = {}
 class OrderedDict(object):
 	def __init__(self, dict):
 		self.dict = dict
+		self.order()
 	
 	def order(self):
 		keys = list(self.dict.keys())
-		self.key_d = copy.copy(keys)
+		self.key_d = []
+		for i in range(len(keys)):
+			self.key_d.append(None)
 		vals = list(self.dict.values())
 		self.val_d = copy.copy(vals)
-		self.val_d.sort()
+		self.val_d.sort(reverse=True)
 		for i, key in enumerate(keys):
-			self.key_d[self.val_d.index(vals[i])] = key
+			j = 0
+			#in case there are two identical dictionary values, order will be the same and keys can be overriden.
+			while self.key_d[self.val_d.index(vals[i]) + j] != None:
+				j += 1
+				self.key_d[self.val_d.index(vals[i]) + j]
+			self.key_d[self.val_d.index(vals[i])+j] = key			
 	
 #Object that computes all permutation possible of N numbers within M numbers. Takes list of numbers (as str) and N_Triad as arguments.
 class TriadsN(object):
@@ -206,13 +214,29 @@ def add_dict(dic1, dic2):
 			total_dic[key] = dic2[key]
 	return total_dic
 
-	
+def file_write_dic(dic, file):
+	ord_dic = OrderedDict(dic)
+	dic_format = "Number;Frequency\n"
+	for i, key in enumerate(ord_dic.key_d):
+		dic_format += str(key)+";"+str(ord_dic.val_d[i])+"\n"
+	with open(file, 'a') as loto_stats:
+		loto_stats.write(dic_format)
+
 list_numbers = read_stats_file("nouveau_loto.csv",4,5)
 get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
 
 best_num_dic = deeper_analysis()
 best_num_dic_next_level = deeper_analysis(1)
 total_dic = add_dict(best_num_dic, best_num_dic_next_level)
+
+file = "best_numbers.csv"
+with open(file, 'w') as loto_stats:
+	pass
+
+file_write_dic(best_num_dic, file)
+file_write_dic(best_num_dic_next_level, file)
+file_write_dic(total_dic, file)
+"""
 occurence_formatted = "Number;Frequency\n"
 for key in best_num_dic:
 	occurence_formatted += str(key)+";"+str(best_num_dic[key])+"\n"
@@ -227,7 +251,7 @@ for key in total_dic:
 file = "best_numbers.csv"
 with open(file, 'w') as loto_stats:
 	loto_stats.write(occurence_formatted)
-
+"""
 max_occ, best_num, reverse_occ = max_occurence()
 #must reset occurence for second run
 occurence = {}
