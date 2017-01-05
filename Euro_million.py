@@ -1,31 +1,32 @@
 
 import random
 import copy
+import winnings
 
 #occurence is the dictionary of number triad (key) and their occurences. It is used in functions.
 occurence = {}	
 
-#Order dictionnaries by values. Takes a dictionary as argument. Two lists are given.
+#Order dictionnaries by values. Takes a dictionary as argument. Two lists are given with matching indexes.
 class OrderedDict(object):
 	def __init__(self, dict):
 		self.dict = dict
 		self.order()
 	
-	def order(self):
+	def order(self, reverse_sort=True):
 		keys = list(self.dict.keys())
 		self.key_d = []
 		for i in range(len(keys)):
 			self.key_d.append(None)
 		vals = list(self.dict.values())
 		self.val_d = copy.copy(vals)
-		self.val_d.sort(reverse=True)
+		self.val_d.sort(reverse=reverse_sort)
 		for i, key in enumerate(keys):
 			j = 0
+			key_index = self.val_d.index(vals[i] + j)
 			#in case there are two identical dictionary values, order will be the same and keys can be overriden.
-			while self.key_d[self.val_d.index(vals[i]) + j] != None:
-				j += 1
-				self.key_d[self.val_d.index(vals[i]) + j]
-			self.key_d[self.val_d.index(vals[i])+j] = key			
+			if self.key_d[key_index] != None:
+				j = self.key_d[key_index:].index(None)
+			self.key_d[key_index + j] = key			
 	
 #Object that computes all permutation possible of N numbers within M numbers. Takes list of numbers (as str) and N_Triad as arguments.
 class TriadsN(object):
@@ -108,18 +109,12 @@ def get_best_numbers(list_numbers, file, n_triad=3):
 		triad_object = TriadsN(list_numbers[i], n_triad)
 		triad_object.triad()
 	
-	occurence_formatted = "Combinaison"
+	occurence_formatted = "Combination"
 	for i in range(n_triad):
-		occurence_formatted += ";boule_"+str(i+1)
-	occurence_formatted += ";frequence\n"
+		occurence_formatted += ";ball_"+str(i+1)
+	occurence_formatted += ";frequency\n"
 
-	for key in occurence:
-		key_num = ";".join(key.split('-'))
-		occurence_formatted += "'"+key+";"+key_num+";"+str(occurence[key])+"\n"
-
-	with open(file, 'w') as loto_stats:
-		loto_stats.write(occurence_formatted)					
-					
+	file_write_dic(occurence, file, occurence_formatted, 'w')
 	
 #n is the number of numbers; max is range for random; returns number as a list of str; 
 def loto_number(n, max):
@@ -214,28 +209,42 @@ def add_dict(dic1, dic2):
 			total_dic[key] = dic2[key]
 	return total_dic
 
-def file_write_dic(dic, file):
+#writes the content of dictionary to a csv file. dic_formatted provides the header, but then dictionary content is added into it.
+def file_write_dic(dic, file, dic_formatted, mode='a'):
+	#dictionary is ordered by using custom class object. 
 	ord_dic = OrderedDict(dic)
-	dic_format = "Number;Frequency\n"
 	for i, key in enumerate(ord_dic.key_d):
-		dic_format += str(key)+";"+str(ord_dic.val_d[i])+"\n"
-	with open(file, 'a') as loto_stats:
-		loto_stats.write(dic_format)
-
+		if '-' in key:
+			key_num = ";".join(key.split('-'))
+			dic_formatted += "'"+str(key)+";"+key_num+";"+str(ord_dic.val_d[i])+"\n"
+		else:
+			dic_formatted += key+";"+str(ord_dic.val_d[i])+"\n"
+	for n in range(4):
+		try:
+			with open(file, mode) as loto_stats:
+				loto_stats.write(dic_formatted)
+			break
+		except IOError:
+			print "%s file is opened. Please close before continuing." %(file)
+			pause()
+	else:
+		print "\nYou apparently did not close the file, so I didn't write anything."
+			
 list_numbers = read_stats_file("nouveau_loto.csv",4,5)
 get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
+
+print winnings.winnings(['23','36','39','49','17'],list_numbers)
 
 best_num_dic = deeper_analysis()
 best_num_dic_next_level = deeper_analysis(1)
 total_dic = add_dict(best_num_dic, best_num_dic_next_level)
 
 file = "best_numbers.csv"
-with open(file, 'w') as loto_stats:
-	pass
 
-file_write_dic(best_num_dic, file)
-file_write_dic(best_num_dic_next_level, file)
-file_write_dic(total_dic, file)
+file_write_dic(best_num_dic, file, "Number;Frequency\n", 'w')
+file_write_dic(best_num_dic_next_level, file, "Number;Frequency\n")
+file_write_dic(total_dic, file, "Number;Frequency\n")
+
 """
 occurence_formatted = "Number;Frequency\n"
 for key in best_num_dic:
