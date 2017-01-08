@@ -104,7 +104,6 @@ def read_stats_file(file, init = 4, n = 5):
 #iterates through the list of number (as str); creates the triad and populates the occurence dictionary (which is a main variable). 
 #Variables are a list of list of numbers (as str), output filename and length of chain if not 3.
 def get_best_numbers(list_numbers, file, n_triad=3):
-	
 	for i in range(len(list_numbers)):
 		triad_object = TriadsN(list_numbers[i], n_triad)
 		triad_object.triad()
@@ -133,16 +132,6 @@ def generate_fake_numbers():
 	for i in range(5000):
 		list_numbers.append(loto_number(5,49))
 	return list_numbers
-
-#provides the dictionary (as part of main program) with the key/occurences for each number triad. Takes a list of numbers as str. n if not a triad is tested
-def triad(list_numbers,n=3):
-	#-(n-1) to stop at the last number (i+n lower)
-	for i in range(len(list_numbers)-n+1):
-		key = "-".join(list_numbers[i:i+n])
-		try:
-			occurence[key] += 1
-		except KeyError:
-			occurence[key] = 1
 
 def pause():
     programPause = raw_input("Press the <ENTER> key to continue...")
@@ -195,13 +184,18 @@ def deeper_analysis(n=0):
 					best_num_dic[num] = 1 * (max_occ - n)
 	return best_num_dic
 
+#Returns the sum of two dictionaries as a dictionary where values are numeric only. All keys from both dictionaries are created. Values are added.
 def add_dict(dic1, dic2):
 	total_dic = {}
 	for key in dic1:
+		#if the same key exist in both dictionaries, then add values
 		try:
 			total_dic[key] = dic1[key] + dic2[key]
+		#if key does not exist in second dictionary, then only use value from dic1.
 		except KeyError:
 			total_dic[key] = dic1[key]
+	#must also add keys that only exist in the second dictionary. 
+	#If they exist in dic1, then it is ignored (foo). If it doesn't, it will create an error which is caught and used to add the key/value pair to total_dic.
 	for key in dic2:
 		try:
 			foo = dic1[key]
@@ -233,7 +227,7 @@ def file_write_dic(dic, file, dic_formatted, mode='a'):
 list_numbers = read_stats_file("nouveau_loto.csv",4,5)
 get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
 
-print winnings.winnings(['23','36','39','49','17'],list_numbers)
+#print winnings.winnings(['23','36','39','49','17'],list_numbers)
 
 best_num_dic = deeper_analysis()
 best_num_dic_next_level = deeper_analysis(1)
