@@ -12,6 +12,7 @@ class OrderedDict(object):
 		self.dict = dict
 		self.order()
 	
+	#Creates order in dictionary. val_d variable for values as a list and key_d variable for keys.
 	def order(self, reverse_sort=True):
 		keys = list(self.dict.keys())
 		self.key_d = []
@@ -113,7 +114,11 @@ def get_best_numbers(list_numbers, file, n_triad=3):
 		occurence_formatted += ";ball_"+str(i+1)
 	occurence_formatted += ";frequency\n"
 
-	file_write_dic(occurence, file, occurence_formatted, 'w')
+	#dictionary is ordered by using custom class object. 
+	ord_occ = OrderedDict(occurence)
+
+	file_write_dic(ord_occ, file, occurence_formatted, 'w')
+	
 	
 #n is the number of numbers; max is range for random; returns number as a list of str; 
 def loto_number(n, max):
@@ -149,12 +154,16 @@ def reverse_dico(dico):
 #Returns the max occurence frequency and the list of all combinations that are the most 'popular'. Also returns the reverse dico.
 #n to offset the best_num_list from max
 def max_occurence(n=0):
-	reverse_occ = reverse_dico(occurence)
+	#reverse_occ = reverse_dico(occurence)
 	max_key = max(occurence.values())
 	best_num_list = []
 	#for i in range(n):
-	best_num_list += reverse_occ[max_key-n] #i or n selon que for ou pas
-	return max_key, best_num_list, reverse_occ
+	try:
+		best_num_list += reverse_occ[max_key-n] #i or n selon que for ou pas
+	except NameError:
+		reverse_occ = reverse_dico(occurence)
+		best_num_list += reverse_occ[max_key-n] #i or n selon que for ou pas
+	return max_key, best_num_list #, reverse_occ
 
 #Returns list of list of numbers after splitting a list of joined numbers. If False is sent, then numbers as a list
 def split_numbers(joined_numbers, list_of_list=True):
@@ -171,9 +180,9 @@ def split_numbers(joined_numbers, list_of_list=True):
 #n to offset the best numbers from max occurence (1 looks at 2nd best and so on)
 def deeper_analysis(n=0):
 	best_num_dic = {}
-	max_occ, best_num, reverse_occ = max_occurence()
+	max_occ, best_num = max_occurence()
 	best_list_numbers = list(set(split_numbers(best_num,False)))
-	max_occ, best_num, reverse_occ = max_occurence(n)
+	max_occ, best_num = max_occurence(n)
 	second_best_list_numbers = split_numbers(best_num)
 	for num in best_list_numbers:
 		for num_list in second_best_list_numbers:
@@ -204,9 +213,8 @@ def add_dict(dic1, dic2):
 	return total_dic
 
 #writes the content of dictionary to a csv file. dic_formatted provides the header, but then dictionary content is added into it.
-def file_write_dic(dic, file, dic_formatted, mode='a'):
-	#dictionary is ordered by using custom class object. 
-	ord_dic = OrderedDict(dic)
+#takes OrderedDict object, the filename to write and the header as input. File opening mode (append or write) is optional.
+def file_write_dic(ord_dic, file, dic_formatted, mode='a'):
 	for i, key in enumerate(ord_dic.key_d):
 		if '-' in key:
 			key_num = ";".join(key.split('-'))
@@ -225,35 +233,51 @@ def file_write_dic(dic, file, dic_formatted, mode='a'):
 		print "\nYou apparently did not close the file, so I didn't write anything."
 			
 list_numbers = read_stats_file("nouveau_loto.csv",4,5)
-get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
+best_num_first_level = get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
+reverse_occ = reverse_dico(occurence)
 
 #print winnings.winnings(['23','36','39','49','17'],list_numbers)
+"""
+strategy is to use OrderedDict at this level instead of file_write_dic. Use OrderedDict object and/or max_occ (deeper_analysis runs this and returns it)
+to get only the best one. Then use best_num_dic_next_level (OrderedDict) must ask for input n numbers to know how many to return. 
 
-best_num_dic = deeper_analysis()
-best_num_dic_next_level = deeper_analysis(1)
-total_dic = add_dict(best_num_dic, best_num_dic_next_level)
+scratch that... 
 
-file = "best_numbers.csv"
+just use reverse dico as shown below. Should try to get that from deeper_analysis() / max_occurence that run it.
 
-file_write_dic(best_num_dic, file, "Number;Frequency\n", 'w')
-file_write_dic(best_num_dic_next_level, file, "Number;Frequency\n")
-file_write_dic(total_dic, file, "Number;Frequency\n")
+Should reverse some changes using OrderedDict... do whatever is most efficient.
+
+Also look into alternate way to sort dictionary using reverse_dico... by using 
+for n in range(....):
+	try:
+		reverse_dico[max(dico.values())-n]
+	except ValueError:
+		pass
 
 """
-occurence_formatted = "Number;Frequency\n"
-for key in best_num_dic:
-	occurence_formatted += str(key)+";"+str(best_num_dic[key])+"\n"
-occurence_formatted += "\n\nNext round of max occurence.\nNumber;Frequency\n"
-for key in best_num_dic_next_level:
-	occurence_formatted += str(key)+";"+str(best_num_dic_next_level[key])+"\n"
 
-occurence_formatted += "\n\nTotal of max occurence.\nNumber;Frequency\n"
-for key in total_dic:
-	occurence_formatted += str(key)+";"+str(total_dic[key])+"\n"
-	
+best_num_dic = deeper_analysis()
+best_num_ord_dic = OrderedDict(best_num_dic)
+
+best_num_dic_next_level = deeper_analysis(1)
+best_num_ord_dic_next_level = OrderedDict(best_num_dic_next_level)
+#must rewrite add_dict so it works with OrderedDict object. then uncomment next line (and few lines down). Also deeper_analysis() should return OrderedDict to make things more simple.
+#total_dic = add_dict(best_num_dic, best_num_dic_next_level)
+
+#that's the principe... don't run reverse_dico, get it from when it was run
+best_reverse = reverse_dico(best_num_dic)
+
+print "the best numbers are: ", best_reverse[max(best_num_dic.values())]
+
+pause()
 file = "best_numbers.csv"
-with open(file, 'w') as loto_stats:
-	loto_stats.write(occurence_formatted)
+
+
+file_write_dic(best_num_ord_dic, file, "Number;Frequency\n", 'w')
+file_write_dic(best_num_ord_dic_next_level, file, "Number;Frequency\n")
+#file_write_dic(total_dic, file, "Number;Frequency\n")
+
+
 """
 max_occ, best_num, reverse_occ = max_occurence()
 #must reset occurence for second run
@@ -265,6 +289,6 @@ max_occ, best_num, reverse_occ = max_occurence(0)
 occurence = {}
 list_numbers = split_numbers(best_num)
 get_best_numbers(list_numbers, "loto_stats_1.csv", 1)
-
+"""
 		
 print "Done."
