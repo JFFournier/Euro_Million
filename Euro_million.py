@@ -114,11 +114,7 @@ def get_best_numbers(list_numbers, file, n_triad=3):
 		occurence_formatted += ";ball_"+str(i+1)
 	occurence_formatted += ";frequency\n"
 
-	#dictionary is ordered by using custom class object. 
-	ord_occ = OrderedDict(occurence)
-
-	file_write_dic(ord_occ, file, occurence_formatted, 'w')
-	
+	file_write_dic(occurence, file, occurence_formatted, 'w')
 	
 #n is the number of numbers; max is range for random; returns number as a list of str; 
 def loto_number(n, max):
@@ -154,16 +150,12 @@ def reverse_dico(dico):
 #Returns the max occurence frequency and the list of all combinations that are the most 'popular'. Also returns the reverse dico.
 #n to offset the best_num_list from max
 def max_occurence(n=0):
-	#reverse_occ = reverse_dico(occurence)
+	reverse_occ = reverse_dico(occurence)
 	max_key = max(occurence.values())
 	best_num_list = []
 	#for i in range(n):
-	try:
-		best_num_list += reverse_occ[max_key-n] #i or n selon que for ou pas
-	except NameError:
-		reverse_occ = reverse_dico(occurence)
-		best_num_list += reverse_occ[max_key-n] #i or n selon que for ou pas
-	return max_key, best_num_list #, reverse_occ
+	best_num_list += reverse_occ[max_key-n] #i or n selon que for ou pas
+	return max_key, best_num_list, reverse_occ
 
 #Returns list of list of numbers after splitting a list of joined numbers. If False is sent, then numbers as a list
 def split_numbers(joined_numbers, list_of_list=True):
@@ -180,9 +172,9 @@ def split_numbers(joined_numbers, list_of_list=True):
 #n to offset the best numbers from max occurence (1 looks at 2nd best and so on)
 def deeper_analysis(n=0):
 	best_num_dic = {}
-	max_occ, best_num = max_occurence()
+	max_occ, best_num, reverse_occ = max_occurence()
 	best_list_numbers = list(set(split_numbers(best_num,False)))
-	max_occ, best_num = max_occurence(n)
+	max_occ, best_num, reverse_occ = max_occurence(n)
 	second_best_list_numbers = split_numbers(best_num)
 	for num in best_list_numbers:
 		for num_list in second_best_list_numbers:
@@ -213,8 +205,10 @@ def add_dict(dic1, dic2):
 	return total_dic
 
 #writes the content of dictionary to a csv file. dic_formatted provides the header, but then dictionary content is added into it.
-#takes OrderedDict object, the filename to write and the header as input. File opening mode (append or write) is optional.
-def file_write_dic(ord_dic, file, dic_formatted, mode='a'):
+#takes dictionary, the filename to write and the header as input. File opening mode (append or write) is optional.
+def file_write_dic(dic, file, dic_formatted, mode='a'):
+	#dictionary is ordered by using custom class object. 
+	ord_dic = OrderedDict(dic)
 	for i, key in enumerate(ord_dic.key_d):
 		if '-' in key:
 			key_num = ";".join(key.split('-'))
@@ -231,10 +225,11 @@ def file_write_dic(ord_dic, file, dic_formatted, mode='a'):
 			pause()
 	else:
 		print "\nYou apparently did not close the file, so I didn't write anything."
-			
-list_numbers = read_stats_file("nouveau_loto.csv",4,5)
-best_num_first_level = get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
-reverse_occ = reverse_dico(occurence)
+
+number_amount = 5 #raw_input("How many numbers should be guessed? ") #add error check
+		
+list_numbers = read_stats_file("nouveau_loto.csv",4,number_amount)
+get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
 
 #print winnings.winnings(['23','36','39','49','17'],list_numbers)
 """
@@ -256,29 +251,57 @@ for n in range(....):
 
 """
 
+def reverse_dico_max_list(dic):
+	best_reverse_dico = reverse_dico(dic)
+	best_reverse_list = best_reverse_dico[max(dic.values())]
+	return best_reverse_dico, best_reverse_list
+
 best_num_dic = deeper_analysis()
-best_num_ord_dic = OrderedDict(best_num_dic)
-
 best_num_dic_next_level = deeper_analysis(1)
-best_num_ord_dic_next_level = OrderedDict(best_num_dic_next_level)
-#must rewrite add_dict so it works with OrderedDict object. then uncomment next line (and few lines down). Also deeper_analysis() should return OrderedDict to make things more simple.
-#total_dic = add_dict(best_num_dic, best_num_dic_next_level)
+total_dic = add_dict(best_num_dic, best_num_dic_next_level)
+#best_reverse_list as the list of best numbers. This is the initial pick.
+best_reverse_dico, best_reverse_list = reverse_dico_max_list(best_num_dic)
+#number_amount = 8
+#loops through the very best numbers, picking them in order max occurence until there is as many numbers as are drawn in loto
+while len(best_reverse_list) < number_amount:
+	#if there is a single occurence/frequency, then don't eliminate that occurence ; instead re-run same dictionary in next step without trimming. 
+	if len(reverse_dico(best_num_dic)) != 1:
+		#remove max occurence (already in best_reverse_list) 
+		best_num_dic = {k:v for k, v in best_num_dic.iteritems() if v != max(best_num_dic.values())}
+	else:
+		#removes numbers already picked to prevent infinite while. Sets best_num_dic_next_level to best numbers minus those picked for final pick.
+		best_num_dic = {k:v for k, v in best_num_dic.iteritems() if k not in best_reverse_list}
+		best_num_dic_next_level = best_num_dic
+	#error generated when number_amount is less than total numbers from first pick. In that case, just return what we have.
+	try: 
+		second_best_list = best_reverse_dico[max(best_num_dic.values())]
+	except ValueError:
+		print "Not enough data to pull out enough best numbers."
+		break
+	#if necessary, go look in occurence from one level down to discriminate between identical occurence. Use OrderedDict to just get the right number of numbers.
+	if len(second_best_list) + len(best_reverse_list) > number_amount:
+		best_num_dic_next_level = {k:v for k, v in best_num_dic_next_level.iteritems() if k not in best_reverse_list and k in second_best_list}
+		ordered_second_best = OrderedDict(best_num_dic_next_level)
+		best_reverse_list += ordered_second_best.key_d[0:number_amount-len(best_reverse_list)]
+	elif len(second_best_list) + len(best_reverse_list) == number_amount:
+		best_reverse_list += second_best_list[0:number_amount-len(best_reverse_list)]
+	else:
+		best_reverse_list += second_best_list
 
-#that's the principe... don't run reverse_dico, get it from when it was run
-best_reverse = reverse_dico(best_num_dic)
+print "the best numbers are: ", best_reverse_list #[max(best_num_dic.values())]
 
-print "the best numbers are: ", best_reverse[max(best_num_dic.values())]
+
 
 pause()
 file = "best_numbers.csv"
 
 
-file_write_dic(best_num_ord_dic, file, "Number;Frequency\n", 'w')
-file_write_dic(best_num_ord_dic_next_level, file, "Number;Frequency\n")
-#file_write_dic(total_dic, file, "Number;Frequency\n")
+file_write_dic(best_num_dic, file, "Number;Frequency\n", 'w')
+file_write_dic(best_num_dic_next_level, file, "Number;Frequency\n")
+file_write_dic(total_dic, file, "Number;Frequency\n")
 
 
-"""
+
 max_occ, best_num, reverse_occ = max_occurence()
 #must reset occurence for second run
 occurence = {}
@@ -289,6 +312,6 @@ max_occ, best_num, reverse_occ = max_occurence(0)
 occurence = {}
 list_numbers = split_numbers(best_num)
 get_best_numbers(list_numbers, "loto_stats_1.csv", 1)
-"""
+
 		
 print "Done."
