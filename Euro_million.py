@@ -6,24 +6,14 @@ import winnings
 #occurence is the dictionary of number triad (key) and their occurences. It is used in functions.
 occurence = {}	
 
-
-"""
-Also look into alternate way to sort dictionary using reverse_dico... by using 
-for n in range(....):
-	try:
-		reverse_dico[max(dico.values())-n]
-	except ValueError:
-		pass
-
-"""
-
-#Order dictionnaries by values. Takes a dictionary as argument. Two lists are given with matching indexes.
+#Order dictionaries by values. Takes a dictionary as argument. Two lists are given with matching indexes.
 class OrderedDict(object):
-	def __init__(self, dict):
+	def __init__(self, dict, reverse_sort=True):
 		self.dict = dict
-		self.order()
+		self.order(reverse_sort)
 	
 	#Creates order in dictionary. val_d variable for values as a list and key_d variable for keys.
+	#works by creating reverse dictionary (reverse key and values), then appends list of keys and values in order of values
 	def order(self, reverse_sort=True):
 		keys = list(self.dict.keys())
 		self.key_d = []
@@ -31,18 +21,27 @@ class OrderedDict(object):
 		dic_inv = reverse_dico(self.dict)
 		n = 0
 		max_val = max(self.dict.values())
-		x = max_val - n
-		while  x > 0:
-			x = max_val - n
-			try:
-				len_x = len(dic_inv[x])
-				for i in range(len_x):
-					self.val_d.append(x)
-				for i in range(len_x):
-					self.key_d.append(dic_inv[x][i])
-			except KeyError:
-				pass
-			n += 1				
+		if reverse_sort == True:
+			for n in range(max_val):
+				x = max_val - n
+				self.order_list(dic_inv, x)
+		else:
+			min_val = min(self.dict.values())
+			for n in range(max_val):
+				x = min_val + n
+				self.order_list(dic_inv, x)
+		
+	#used by order function; creates the lists
+	def order_list(self, dic_inv, x):
+		try:
+			len_x = len(dic_inv[x])
+			#in case more than one value per key which corresponds in normal dict to many keys having the same value
+			for i in range(len_x):
+				self.val_d.append(x)
+			for i in range(len_x):
+				self.key_d.append(dic_inv[x][i])
+		except KeyError:
+			pass				
 				
 #Object that computes all permutation possible of N numbers within M numbers. Takes list of numbers (as str) and N_Triad as arguments.
 class TriadsN(object):
@@ -96,7 +95,6 @@ class TriadsN(object):
 			except KeyError:
 				occurence[key_str] = 1
 
-					
 #reads csv file to get numbers; start at cell 'init' and ends reading after 'n' numbers. Returns a list of numbers as strings.
 def read_stats_file(file, init = 4, n = 5):
 	with open(file, 'r') as f:
@@ -224,13 +222,16 @@ def add_dict(dic1, dic2):
 def file_write_dic(dic, file, dic_formatted, mode='a'):
 	#dictionary is ordered by using custom class object. 
 	ord_dic = OrderedDict(dic)
-	for i, key in enumerate(ord_dic.key_d):
-		if '-' in key:
+	#Not the same no of columns depending on whether file writing occurs when writing combinations or best numbers
+	if 'Combination' in dic_formatted:
+		for i, key in enumerate(ord_dic.key_d):
 			key_num = ";".join(key.split('-'))
 			#' added otherwise some 3 numbers combinations are understood as dates in excel.
 			dic_formatted += "'"+key+";"+key_num+";"+str(ord_dic.val_d[i])+"\n"
-		else:
-			dic_formatted += key+";"+key+";"+str(ord_dic.val_d[i])+"\n"
+	else:
+		for i, key in enumerate(ord_dic.key_d):
+			dic_formatted += key+";"+str(ord_dic.val_d[i])+"\n"
+	#4 tries to close file if opened. 
 	for n in range(4):
 		try:
 			with open(file, mode) as loto_stats:
@@ -242,18 +243,49 @@ def file_write_dic(dic, file, dic_formatted, mode='a'):
 	else:
 		print "\nYou apparently did not close the file, so I didn't write anything."
 
+#takes a dictionary and returns the reversed dictionary (keys become values and vice-versa) and the list of keys (numbers) that match the highest values (occurence)
 def reverse_dico_max_list(dic):
 	best_reverse_dico = reverse_dico(dic)
 	best_reverse_list = best_reverse_dico[max(dic.values())]
 	return best_reverse_dico, best_reverse_list
 
-	
+#gets the next iteration of best numbers from the current best numbers by looking at N-1 combinations.
+def number_runs(file_i):
+	max_occ, best_num, reverse_occ = max_occurence()
+	#must reset global variable occurence dictionary
+	global occurence
+	occurence = {}
+	file = "loto_stats_"+str(file_i)+".csv"
+	new_list_numbers = split_numbers(best_num)
+	get_best_numbers(new_list_numbers, file, file_i)
+
+
 number_amount = 5 #raw_input("How many numbers should be guessed? ") #add error check
-		
+
 list_numbers = read_stats_file("nouveau_loto.csv",4,number_amount)
-get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
+
+#ask if user as his own numbers he wants to run to see if you would've won. Run winnings. 
 
 
+"""
+Or better yet, make a menu asking 
+a) Check if your combination would have won anything.
+b) Determine best numbers
+    --> Secondary question is how many numbers to look at
+	--> This should then run winnings
+	
+don't just run winnings.winnings... avoid running costs() twice. use try on total_costs... sorta of
+try:
+	total_costs = total_costs
+	total_winnings = winnings.calc_winning(input_n_list, winning_n_list, winnings.pay_off_grid(input_n_list))
+	return total_winnings - total_costs	
+except NameError:
+	return winnings.winnings
+"""
+
+no_combination = 3 #raw_input("how many numbers do you want to look at?") #add error check
+file = "loto_stats_"+str(no_combination)+".csv"
+get_best_numbers(list_numbers, file, no_combination)
 
 #get the best numbers and puts them in dictionnaries (combinations and their occurences)
 best_num_dic = deeper_analysis()
@@ -268,16 +300,10 @@ file_write_dic(total_dic, file, "Number;Frequency\n")
 
 #ask if user wants a breakdown; of the occurence of smaller sets within the best set; use a while and perhaps a def; filenames with variable
 
-max_occ, best_num, reverse_occ = max_occurence()
-#must reset occurence for second run
-occurence = {}
-new_list_numbers = split_numbers(best_num)
-get_best_numbers(new_list_numbers, "loto_stats_2.csv", 2)
+while no_combination > 1:
+	no_combination -= 1
+	number_runs(no_combination)
 
-max_occ, best_num, reverse_occ = max_occurence(0)
-occurence = {}
-new_list_numbers = split_numbers(best_num)
-get_best_numbers(new_list_numbers, "loto_stats_1.csv", 1)
 
 #This segment will get the final pick of numbers as a list. This is what should go into the winnings module. 
 #best_reverse_list as the list of best numbers. This is the initial pick.
@@ -309,10 +335,10 @@ while len(best_reverse_list) < number_amount:
 	else:
 		best_reverse_list += second_best_list
 
+#ask if user as his own numbers he wants to run to see if you would've won. Then publish best numbers according to program. Then compare results.		
+
 print "the best numbers are: ", best_reverse_list #[max(best_num_dic.values())]
 
 pause()
-# previous list of winning numbers ['23','36','39','49','17']
-print winnings.winnings(best_reverse_list,list_numbers)
-		
+print winnings.winnings(best_reverse_list,list_numbers)	
 print "Done."
