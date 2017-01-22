@@ -6,6 +6,17 @@ import winnings
 #occurence is the dictionary of number triad (key) and their occurences. It is used in functions.
 occurence = {}	
 
+
+"""
+Also look into alternate way to sort dictionary using reverse_dico... by using 
+for n in range(....):
+	try:
+		reverse_dico[max(dico.values())-n]
+	except ValueError:
+		pass
+
+"""
+
 #Order dictionnaries by values. Takes a dictionary as argument. Two lists are given with matching indexes.
 class OrderedDict(object):
 	def __init__(self, dict):
@@ -16,19 +27,23 @@ class OrderedDict(object):
 	def order(self, reverse_sort=True):
 		keys = list(self.dict.keys())
 		self.key_d = []
-		for i in range(len(keys)):
-			self.key_d.append(None)
-		vals = list(self.dict.values())
-		self.val_d = copy.copy(vals)
-		self.val_d.sort(reverse=reverse_sort)
-		for i, key in enumerate(keys):
-			j = 0
-			key_index = self.val_d.index(vals[i] + j)
-			#in case there are two identical dictionary values, order will be the same and keys can be overriden.
-			if self.key_d[key_index] != None:
-				j = self.key_d[key_index:].index(None)
-			self.key_d[key_index + j] = key			
-	
+		self.val_d = []
+		dic_inv = reverse_dico(self.dict)
+		n = 0
+		max_val = max(self.dict.values())
+		x = max_val - n
+		while  x > 0:
+			x = max_val - n
+			try:
+				len_x = len(dic_inv[x])
+				for i in range(len_x):
+					self.val_d.append(x)
+				for i in range(len_x):
+					self.key_d.append(dic_inv[x][i])
+			except KeyError:
+				pass
+			n += 1				
+				
 #Object that computes all permutation possible of N numbers within M numbers. Takes list of numbers (as str) and N_Triad as arguments.
 class TriadsN(object):
 	def __init__(self, list_numbers, N_Triad = 3):
@@ -238,15 +253,7 @@ number_amount = 5 #raw_input("How many numbers should be guessed? ") #add error 
 list_numbers = read_stats_file("nouveau_loto.csv",4,number_amount)
 get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
 
-"""
-Also look into alternate way to sort dictionary using reverse_dico... by using 
-for n in range(....):
-	try:
-		reverse_dico[max(dico.values())-n]
-	except ValueError:
-		pass
 
-"""
 
 #get the best numbers and puts them in dictionnaries (combinations and their occurences)
 best_num_dic = deeper_analysis()
