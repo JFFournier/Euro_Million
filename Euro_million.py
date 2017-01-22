@@ -212,9 +212,10 @@ def file_write_dic(dic, file, dic_formatted, mode='a'):
 	for i, key in enumerate(ord_dic.key_d):
 		if '-' in key:
 			key_num = ";".join(key.split('-'))
-			dic_formatted += "'"+str(key)+";"+key_num+";"+str(ord_dic.val_d[i])+"\n"
+			#' added otherwise some 3 numbers combinations are understood as dates in excel.
+			dic_formatted += "'"+key+";"+key_num+";"+str(ord_dic.val_d[i])+"\n"
 		else:
-			dic_formatted += key+";"+str(ord_dic.val_d[i])+"\n"
+			dic_formatted += key+";"+key+";"+str(ord_dic.val_d[i])+"\n"
 	for n in range(4):
 		try:
 			with open(file, mode) as loto_stats:
@@ -226,22 +227,18 @@ def file_write_dic(dic, file, dic_formatted, mode='a'):
 	else:
 		print "\nYou apparently did not close the file, so I didn't write anything."
 
+def reverse_dico_max_list(dic):
+	best_reverse_dico = reverse_dico(dic)
+	best_reverse_list = best_reverse_dico[max(dic.values())]
+	return best_reverse_dico, best_reverse_list
+
+	
 number_amount = 5 #raw_input("How many numbers should be guessed? ") #add error check
 		
 list_numbers = read_stats_file("nouveau_loto.csv",4,number_amount)
 get_best_numbers(list_numbers, "loto_stats_3.csv", 3)
 
-#print winnings.winnings(['23','36','39','49','17'],list_numbers)
 """
-strategy is to use OrderedDict at this level instead of file_write_dic. Use OrderedDict object and/or max_occ (deeper_analysis runs this and returns it)
-to get only the best one. Then use best_num_dic_next_level (OrderedDict) must ask for input n numbers to know how many to return. 
-
-scratch that... 
-
-just use reverse dico as shown below. Should try to get that from deeper_analysis() / max_occurence that run it.
-
-Should reverse some changes using OrderedDict... do whatever is most efficient.
-
 Also look into alternate way to sort dictionary using reverse_dico... by using 
 for n in range(....):
 	try:
@@ -251,17 +248,34 @@ for n in range(....):
 
 """
 
-def reverse_dico_max_list(dic):
-	best_reverse_dico = reverse_dico(dic)
-	best_reverse_list = best_reverse_dico[max(dic.values())]
-	return best_reverse_dico, best_reverse_list
-
+#get the best numbers and puts them in dictionnaries (combinations and their occurences)
 best_num_dic = deeper_analysis()
 best_num_dic_next_level = deeper_analysis(1)
 total_dic = add_dict(best_num_dic, best_num_dic_next_level)
+
+#write the best numbers from dictionaries into files
+file = "best_numbers.csv"
+file_write_dic(best_num_dic, file, "Number;Frequency\n", 'w')
+file_write_dic(best_num_dic_next_level, file, "Number;Frequency\n")
+file_write_dic(total_dic, file, "Number;Frequency\n")
+
+#ask if user wants a breakdown; of the occurence of smaller sets within the best set; use a while and perhaps a def; filenames with variable
+
+max_occ, best_num, reverse_occ = max_occurence()
+#must reset occurence for second run
+occurence = {}
+new_list_numbers = split_numbers(best_num)
+get_best_numbers(new_list_numbers, "loto_stats_2.csv", 2)
+
+max_occ, best_num, reverse_occ = max_occurence(0)
+occurence = {}
+new_list_numbers = split_numbers(best_num)
+get_best_numbers(new_list_numbers, "loto_stats_1.csv", 1)
+
+#This segment will get the final pick of numbers as a list. This is what should go into the winnings module. 
 #best_reverse_list as the list of best numbers. This is the initial pick.
 best_reverse_dico, best_reverse_list = reverse_dico_max_list(best_num_dic)
-#number_amount = 8
+#number_amount = 12 this is just for debugging; number_amount is set at the beginning according to number of loto numbers in each draw
 #loops through the very best numbers, picking them in order max occurence until there is as many numbers as are drawn in loto
 while len(best_reverse_list) < number_amount:
 	#if there is a single occurence/frequency, then don't eliminate that occurence ; instead re-run same dictionary in next step without trimming. 
@@ -290,28 +304,8 @@ while len(best_reverse_list) < number_amount:
 
 print "the best numbers are: ", best_reverse_list #[max(best_num_dic.values())]
 
-
-
 pause()
-file = "best_numbers.csv"
-
-
-file_write_dic(best_num_dic, file, "Number;Frequency\n", 'w')
-file_write_dic(best_num_dic_next_level, file, "Number;Frequency\n")
-file_write_dic(total_dic, file, "Number;Frequency\n")
-
-
-
-max_occ, best_num, reverse_occ = max_occurence()
-#must reset occurence for second run
-occurence = {}
-list_numbers = split_numbers(best_num)
-get_best_numbers(list_numbers, "loto_stats_2.csv", 2)
-
-max_occ, best_num, reverse_occ = max_occurence(0)
-occurence = {}
-list_numbers = split_numbers(best_num)
-get_best_numbers(list_numbers, "loto_stats_1.csv", 1)
-
+# previous list of winning numbers ['23','36','39','49','17']
+print winnings.winnings(best_reverse_list,list_numbers)
 		
 print "Done."
