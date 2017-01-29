@@ -1,4 +1,5 @@
-"""This module serves to calculate if any given combination pays off (or more likely not) and how much. By providing a ticket price, a combination, a list of the history of winning 
+"""By JFF. From Lotto Project.
+This module serves to calculate if any given combination pays off (or more likely not) and how much. By providing a ticket price, a combination, a list of the history of winning 
 loto numbers as a list of list and a payout grid (by default, the french loto numbers payout grid is used), the system calculates how much it would've cost
 to participate in all drawings. It also creates a dictionary where the key is the number of matching numbers and the value is the number of times the combination would've had that many matching
 numbers. From the latter and the payout grid, the earnings are calculated. Earnings - costs gives the total which is returned.
@@ -7,9 +8,7 @@ numbers. From the latter and the payout grid, the earnings are calculated. Earni
 #returns the gross earnings from a combination (list of numbers), the list of winning numbers (list of list) and the payout grid (dictionary)
 #Done by making a dictionary of matchings numbers:number of times with that many matching numbers. Then uses earnings function to return total.
 def calc_winning(input_n_list, winning_n_list, pay_off):
-	matching_n = {}
-	for i in range(len(input_n_list)):
-		matching_n[i] = 0
+	matching_n = {x:0 for x in range(0,len(input_n_list)+1)}
 	for win_number in winning_n_list:
 		match = 0
 		for number in input_n_list:
@@ -28,10 +27,11 @@ def earnings(matching_n, pay_off):
 	
 #returns a pay_off dictionary (pay off for n matching numbers for all values of n). Default values are from French loto grid, but user can specify his own.
 def pay_off_grid(input_n_list):
-	source = ''
-	while source not in ('y', 'n'):
+	source = ' '
+	while source not in ('y', 'n', ''):
 		source = raw_input("Do you want to use the default grid (5 values only)? (y/n) ").lower()
-	if source == 'y':
+	if source == 'y' or source == '':
+		print "Using default grid."
 		pay_off = {0:0, 1:0, 2:5, 3:10, 4:1000, 5:100000}
 	else:
 		pay_off = {}
@@ -63,8 +63,3 @@ def winnings(input_n_list, winning_n_list):
 	total_costs = costs(winning_n_list)
 	total_winnings = calc_winning(input_n_list, winning_n_list, pay_off_grid(input_n_list))
 	return total_winnings - total_costs
-
-#winning_n_list = [[1,2,3,4,5], [4,5,6,7,8]]
-#input_n_list = [3,4,5,9,10]
-
-#print "bleu", winnings(input_n_list, winning_n_list)
