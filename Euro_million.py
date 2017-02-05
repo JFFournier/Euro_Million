@@ -401,6 +401,7 @@ while True:
 	if answer.lower() == 'a':
 		input_file = input_filename()
 		init_pos = valid_number("Which column in file has the first number? ")
+		init_pos -= 1 #corrects for 1st column = 0
 		number_amount = valid_number("How many numbers in a single drawing? ")
 	elif answer.lower() == 'b':
 		list_numbers = read_stats_file(input_file,init_pos,number_amount)
